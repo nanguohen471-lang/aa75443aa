@@ -4768,5 +4768,255 @@
             document.getElementById('resultPage').classList.remove('hidden');
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97e1d292e53f4a54',t:'MTc1NzcwNTQ2MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97f4b04c865e313b',t:'MTc1NzkwMzI4NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+<!-- 修正版干支計算模組，避免 undefined 問題 -->
+<script>
+const gan = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+const zhi = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+
+// 流年
+function getLiuNian(year) {
+    let g = (year - 4) % 10;
+    let z = (year - 4) % 12;
+    return gan[g] + zhi[z];
+}
+
+// 流月
+function getLiuYue(year, month) {
+    const startGan = [2, 4, 6, 8, 0];
+    let yearGanIndex = (year - 4) % 10;
+    let startIndex = startGan[Math.floor(yearGanIndex / 2)];
+    let ganIndex = (startIndex + (month - 1)) % 10;
+    let zhiIndex = (month - 1) % 12;
+    return gan[ganIndex] + zhi[zhiIndex];
+}
+
+// 流日
+function getLiuRi(year, month, day) {
+    let base = new Date(1984, 1, 2); // 1984-02-02 = 甲子日
+    let target = new Date(year, month - 1, day);
+    let diff = Math.floor((target - base) / (1000 * 60 * 60 * 24));
+    let index = (diff % 60 + 60) % 60;
+    return gan[index % 10] + zhi[index % 12];
+}
+
+// 主函式
+function calculateGanzhi(year, month, day) {
+    const liuNian = getLiuNian(year);
+    const liuYue = getLiuYue(year, month);
+    const liuRi = getLiuRi(year, month, day);
+    return { liuNian, liuYue, liuRi };
+}
+
+// 渲染到頁面
+function renderGanzhiResult(year, month, day) {
+    const ganzhi = calculateGanzhi(year, month, day);
+    if (document.getElementById("liuNianResult"))
+        document.getElementById("liuNianResult").innerText = ganzhi.liuNian;
+    if (document.getElementById("liuYueResult"))
+        document.getElementById("liuYueResult").innerText = ganzhi.liuYue;
+    if (document.getElementById("liuRiResult"))
+        document.getElementById("liuRiResult").innerText = ganzhi.liuRi;
+}
+</script>
+
+</body>
 </html>
+
+
+
+<!-- Compatibility wrapper: ensure calculateGanzhi returns normalized fields and numerology/ten-gods exist -->
+<script>
+(function(){
+  try {
+    // local gan/zhi arrays
+    const GAN = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+    const ZHI = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+    // build 60 Ganzhi cycle
+    const GANZHI60 = [];
+    for (let i=0;i<60;i++) GANZHI60.push(GAN[i%10]+ZHI[i%12]);
+
+    // fallback simple getLiuRi (in case original functions missing)
+    function fallbackGetLiuRi(y,m,d){
+      const base = new Date(1984,1,2);
+      const target = new Date(y, m-1, d);
+      const diff = Math.floor((target - base) / 86400000);
+      const idx = ((diff % 60) + 60) % 60;
+      return GANZHI60[idx];
+    }
+
+    // normalize output from any calculateGanzhi-like function to consistent object
+    function normalizeGanzhiObj(raw){
+      // raw might be string (e.g. "丁未") or object with different keys.
+      let out = {
+        year: undefined, month: undefined, day: undefined,
+        liuNian: undefined, liuYue: undefined, liuRi: undefined,
+        yearGan: undefined, yearZhi: undefined,
+        monthGan: undefined, monthZhi: undefined,
+        dayGan: undefined, dayZhi: undefined,
+        dayObj: undefined
+      };
+
+      if (!raw) return out;
+
+      // If raw is a string, assume it's day string.
+      if (typeof raw === 'string') {
+        out.day = raw;
+        out.liuRi = raw;
+      } else if (typeof raw === 'object') {
+        // try common keys
+        out.liuNian = raw.liuNian || raw.year || raw.yearGanzhi || raw.yearGanZhi || raw.ganzhiYear;
+        out.liuYue = raw.liuYue || raw.month || raw.monthGanzhi || raw.monthGanZhi || raw.ganzhiMonth;
+        out.liuRi  = raw.liuRi  || raw.day   || raw.dayGanzhi   || raw.dayGanZhi   || raw.ganzhiDay;
+      }
+
+      // ensure fallbacks: if liuRi missing but dayGan/dayZhi present
+      if ((!out.liuRi || out.liuRi === "undefined") && (raw && raw.dayGan && raw.dayZhi)) {
+        out.liuRi = (raw.dayGan || "") + (raw.dayZhi || "");
+        out.day = out.liuRi;
+      }
+
+      // if still missing, try calling existing calculateGanzhiPrecise or calculateGanzhiOld
+      if (!out.liuRi || out.liuRi === "undefined") {
+        try {
+          if (typeof calculateGanzhiPrecise === 'function') {
+            let r = calculateGanzhiPrecise(window._testYear||1997, window._testMonth||7, window._testDay||6);
+            if (r && r.liuRi) out.liuRi = r.liuRi;
+          } else if (typeof calculateGanzhiOld === 'function') {
+            let r = calculateGanzhiOld(window._testYear||1997, window._testMonth||7, window._testDay||6);
+            if (r && r.liuRi) out.liuRi = r.liuRi;
+          }
+        } catch(e){ /* ignore */ }
+      }
+
+      // Final normalization for year/month/day text fields
+      out.year = out.liuNian || out.year;
+      out.month = out.liuYue || out.month;
+      out.day = out.liuRi || out.day;
+
+      // extract Gan/Zhi parts if present
+      if (typeof out.year === 'string' && out.year.length >= 2) {
+        out.yearGan = out.year[0]; out.yearZhi = out.year[1];
+      }
+      if (typeof out.month === 'string' && out.month.length >= 2) {
+        out.monthGan = out.month[0]; out.monthZhi = out.month[1];
+      }
+      if (typeof out.day === 'string' && out.day.length >= 2) {
+        out.dayGan = out.day[0]; out.dayZhi = out.day[1];
+        out.dayObj = { gan: out.dayGan, zhi: out.dayZhi };
+      }
+
+      return out;
+    }
+
+    // choose underlying function: precise preferred
+    function callUnderlyingGanzhi(y,m,d){
+      if (typeof calculateGanzhiPrecise === 'function') {
+        return calculateGanzhiPrecise(y,m,d);
+      } else if (typeof calculateGanzhiOld === 'function') {
+        return calculateGanzhiOld(y,m,d);
+      } else if (typeof calculateGanzhi === 'function' && calculateGanzhi !== window.calculateGanzhi) {
+        // if calculateGanzhi exists but not yet our wrapper
+        return calculateGanzhi(y,m,d);
+      } else {
+        // fallback
+        return { liuNian: getLiuNianFallback(y), liuYue: getLiuYueFallback(y,m), liuRi: fallbackGetLiuRi(y,m,d) };
+      }
+    }
+
+    // simple fallback year/month functions (if originals missing)
+    function getLiuNianFallback(y){
+      const g = ((y - 4) % 10 + 10) % 10;
+      const z = ((y - 4) % 12 + 12) % 12;
+      return GAN[g] + ZHI[z];
+    }
+    function getLiuYueFallback(y,m){
+      // naive: month -> index
+      const startGan = [2,4,6,8,0];
+      const yearGanIndex = ((y - 4) % 10 + 10) % 10;
+      const startIndex = startGan[Math.floor(yearGanIndex / 2)];
+      const ganIndex = (startIndex + (m - 1)) % 10;
+      const zhiIndex = (m - 1) % 12;
+      return GAN[(ganIndex+10)%10] + ZHI[(zhiIndex+12)%12];
+    }
+
+    // Install normalized wrapper as calculateGanzhi (preserve old under calculateGanzhiOld)
+    (function installWrapper(){
+      // preserve existing if wrapper not yet installed
+      if (typeof window.calculateGanzhi === 'function' && window.calculateGanzhi.name !== 'ganzhiCompatibilityWrapper') {
+        window.calculateGanzhiOld = window.calculateGanzhi;
+      }
+      // define wrapper
+      window.calculateGanzhi = function ganzhiCompatibilityWrapper(y,m,d){
+        const raw = callUnderlyingGanzhi(y,m,d);
+        const norm = normalizeGanzhiObj(raw);
+        // make sure fields exist
+        return {
+          year: norm.year, month: norm.month, day: norm.day,
+          liuNian: norm.liuNian, liuYue: norm.liuYue, liuRi: norm.liuRi,
+          yearGan: norm.yearGan, yearZhi: norm.yearZhi,
+          monthGan: norm.monthGan, monthZhi: norm.monthZhi,
+          dayGan: norm.dayGan, dayZhi: norm.dayZhi, dayObj: norm.dayObj
+        };
+      };
+      console.log("Compatibility wrapper installed: calculateGanzhi -> normalized result");
+    })();
+
+    // Ensure calculateNumerology exists; if missing create one (gender param optional)
+    if (typeof window.calculateNumerology !== 'function') {
+      window.calculateNumerology = function(birthMonth,birthDay,year,month,day,gender){
+        let personalBirthdayNumber = (birthMonth + birthDay) % 9;
+        if (personalBirthdayNumber === 0) personalBirthdayNumber = 9;
+        let yearSum = 0; for (let d of String(year)) yearSum += parseInt(d,10);
+        let personalYear = (personalBirthdayNumber + yearSum) % 9; if (personalYear === 0) personalYear = 9;
+        let personalMonth = (personalYear + month) % 9; if (personalMonth === 0) personalMonth = 9;
+        let personalDay = (personalMonth + day) % 9; if (personalDay === 0) personalDay = 9;
+        // basic mappings
+        const disneyPrincessMap = {1:"白雪公主（純真、領導）",2:"灰姑娘（溫柔、合作）",3:"貝兒（聰明、熱情）",4:"愛麗兒（勇敢、突破）",5:"茉莉（自由）",6:"木蘭（責任）",7:"艾莎（獨立）",8:"樂佩（活力）",9:"梅莉達（理想）"};
+        const disneyPrinceMap = {1:"白馬王子",2:"灰姑娘的王子",3:"野獸王子",4:"艾瑞克王子",5:"阿拉丁",6:"尚高",7:"克里斯托夫",8:"弗林",9:"費迪南"};
+        const disneyCharacter = (gender==="male")? (disneyPrinceMap[personalYear]||"未知王子") : (disneyPrincessMap[personalYear]||"未知公主");
+        return { liuNian: personalYear, liuYue: personalMonth, liuRi: personalDay, disneyCharacter };
+      };
+      console.log("Fallback calculateNumerology installed");
+    }
+
+    // Ten-gods module: simple function to compute and return meaning/advice/fortune
+    if (typeof window.getTenGodAnalysis !== 'function') {
+      const tenGodsMap = {
+        "比肩": { meaning: "與自己相似，代表競爭或夥伴。", advice: "保持自信，同時注意協作。", fortune: "本月易遇到同類型的人，彼此激勵或競爭。" },
+        "劫財": { meaning: "與自己相似但有衝突，代表挑戰或資源分散。", advice: "避免衝動，學會分享。", fortune: "今天可能會有人與你爭奪資源，需要冷靜處理。" },
+        "食神": { meaning: "我生者，代表創造力、表達力。", advice: "多展現才華，勇敢表達自己。", fortune: "今天適合創作與表達，靈感豐富。" },
+        "傷官": { meaning: "我洩者，代表才華外放、挑戰規則。", advice: "保持謙虛，避免與權威衝突。", fortune: "今天有發揮才華的機會，但要注意與上級關係。" },
+        "偏財": { meaning: "我克者，代表機會、靈活獲利。", advice: "抓住機遇，靈活應變。", fortune: "今天財運佳，可能有意外之財。" },
+        "正財": { meaning: "我克者，代表責任與穩定收入。", advice: "踏實努力，專注於本業。", fortune: "今天適合規劃財務，穩定收穫。" },
+        "七殺": { meaning: "克我者，偏性，代表壓力與挑戰。", advice: "勇敢面對壓力，培養韌性。", fortune: "今天可能遇到挑戰，需要冷靜應對。" },
+        "正官": { meaning: "克我者，正性，代表秩序與責任。", advice: "遵守規則，提升責任感。", fortune: "今天適合專注工作，展現專業。" },
+        "偏印": { meaning: "生我者，偏性，代表靈感與依賴。", advice: "信任直覺，接受幫助。", fortune: "今天靈感湧現，但要避免過度依賴他人。" },
+        "正印": { meaning: "生我者，正性，代表支持與學習。", advice: "多學習，接受支持。", fortune: "今天適合學習與吸收新知識。" }
+      };
+      function getWuXingLocal(gan){ if (["甲","乙"].includes(gan)) return "木"; if (["丙","丁"].includes(gan)) return "火"; if (["戊","己"].includes(gan)) return "土"; if (["庚","辛"].includes(gan)) return "金"; if (["壬","癸"].includes(gan)) return "水"; return null; }
+      function calculateTenGodLocal(dayGan, otherGan){
+        const wuDay = getWuXingLocal(dayGan); const wuOther = getWuXingLocal(otherGan);
+        if (!wuDay||!wuOther) return null;
+        if (wuDay === wuOther) return (GAN.indexOf(dayGan)%2 === GAN.indexOf(otherGan)%2)? "比肩":"劫財";
+        if ((wuDay === "木" && wuOther === "火")||(wuDay==="fire"&&wuOther==="土")) return (GAN.indexOf(otherGan)%2===0)?"食神":"傷官";
+        if ((wuDay === "木" && wuOther === "土")||(wuDay==="火"&&wuOther==="金")) return (GAN.indexOf(otherGan)%2===0)?"正財":"偏財";
+        if ((wuDay === "木" && wuOther === "金")||(wuDay==="火"&&wuOther==="水")) return (GAN.indexOf(otherGan)%2===0)?"正官":"七殺";
+        if ((wuDay === "木" && wuOther === "水")||(wuDay==="火"&&wuOther==="木")) return (GAN.indexOf(otherGan)%2===0)?"正印":"偏印";
+        return null;
+      }
+      window.getTenGodAnalysis = function(dayGan, otherGan){
+        const god = calculateTenGodLocal(dayGan, otherGan);
+        if (!god) return { name:"未知", meaning:"無法判定", advice:"請檢查資料", fortune:"需要更多資訊" };
+        return { name:god, ...tenGodsMap[god] };
+      };
+      console.log("Ten-gods module installed");
+    }
+
+    // Done
+    console.log("Compatibility and fallback modules ready.");
+  } catch(err){
+    console.error("Wrapper insertion error:", err);
+  }
+})();
+</script>
